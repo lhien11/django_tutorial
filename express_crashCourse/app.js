@@ -2,7 +2,9 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var path = require('path');
 var expressValidator = require('express-validator');
-
+var mongojs = require('mongojs');
+var db = mongojs('customerapp', ['users']);
+var ObjectId = mongojs.ObjectId;
 var app = express();
 
 // View Engine
@@ -16,7 +18,7 @@ app.use(bodyParser.urlencoded({
 }));
 
 // Set Static Path
-// app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Global Vars
 app.use(function(req, res, next){
@@ -42,28 +44,15 @@ app.use(expressValidator({
   }
 }));
 
-var users = [
-  {
-    first_name: 'John',
-    last_name: 'Doe',
-    email: 'johndoe@gmail.com'
-  },
-  {
-    first_name: 'Hien',
-    last_name: 'Le',
-    email: 'lhien11@gmail.com'
-  },
-  {
-    first_name: 'Annie',
-    last_name: 'Truong',
-    email: 'truon043@gmail.com'
-  }
-];
 app.get('/', function(req, res) {
+  db.users.find(function(err, users){
+    console.log(users);
     res.render('index', {
       title: 'Customers',
       users: users
     });
+  });
+
 });
 
 app.post('/users/add', function(req, res){
@@ -87,14 +76,24 @@ app.post('/users/add', function(req, res){
       last_name: req.body.last_name,
       email: req.body.email
     };
-    res.render('index', {
-      title: 'Customers',
-      users: users
+    db.users.insert(newUser, function(err, result){
+      if(err){
+        console.log("err", err);
+      } else {
+        res.redirect('/');
+      }
     });
-    console.log('SUCCESS');
   }
+});
 
-
+app.delete('/users/delete/:id', function(req, res){
+  // console.log(req.params.id);
+  db.users.remove({_id: ObjectId(req.params.id)}, function(err, result){
+    if(err){
+      console.log(err);
+    }
+    res.redirect('/');
+  });
 });
 
 app.listen(3000, function() {
